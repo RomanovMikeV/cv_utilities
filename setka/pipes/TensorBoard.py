@@ -1,13 +1,14 @@
-from .Pipe import Pipe
+from setka.pipes import Pipe
 
 import torch.utils.tensorboard as TB
 import sys
 import os
 
+
 class TensorBoard(Pipe):
     '''
     pipe to write the progress to the TensorBoard. When the epoch starts
-    (before_epoch), it uploads the computer metrics to the TensorBoard.
+    (before_epoch), it uploads computed metrics on previous epoch to the TensorBoard.
 
     It also writes the predictions to the TensorBoard when the ```predict```
     method of the Trainer is called and visualization function is specified.
@@ -41,56 +42,38 @@ class TensorBoard(Pipe):
 
         name (str): name of the experiment.
 
-        log_dir (str): path to the directory, where the logs will be stored.
+        log_dir (str): path to the directory for "tensorboard --logdir" command.
 
     '''
     def __init__(self,
                  f=None,
                  write_flag=True,
-                 name='checkpoint',
-                 log_dir='./',
+                 name='experiment_name',
+                 log_dir='runs',
                  priority={'after_batch': 10}):
-        self.log_dir = os.path.join(log_dir, 'runs')
         self.f = f
         self.write_flag = write_flag
+        self.log_dir = log_dir
         self.name = name
 
     def before_epoch(self):
         '''
-        Initializes the TensorBoardWriter.
+        Writes scalars (metrics) of the previous epoch.
         '''
-        self.tb_writer = TB.SummaryWriter(log_dir=self.log_dir)
+        if not self.write_flag:
+            return None
         
-        if self.trainer._mode == 'train' and self.write_flag:
-
-            if hasattr(self.trainer, '_metrics'):
-                data = {}
-                for subset in self.trainer._metrics:
-                    for metric_name in self.trainer._metrics[subset]:
-                        if metric_name not in data:
-                            data[metric_name] = {}
-                        data[metric_name][subset] = (
-                            self.trainer._metrics[subset][metric_name])
-
-
-                for metric_name in data:
-                    self.tb_writer.add_scalars(
-                            self.name + '/' + metric_name,
-                            data[metric_name],
-                            self.trainer._epoch)
-                    
-    
-    def after_epoch(self):
-        '''
-        Destroys TensorBoardWriter
-        '''
-
-        self.tb_writer.close()
-        del self.tb_writer
+        self.tb_writer = TB.SummaryWriter(log_dir=os.path.join(self.log_dir, self.name))
         
+        if self.trainer._mode == 'train' and hasattr(self.trainer, '_metrics'):
+            for subset in self.trainer._metrics:
+                for metric_name in self.trainer._metrics[subset]:
+                    self.tb_writer.add_scalar(
+                        f'{metric_name}/{subset}',
+                        self.trainer._metrics[subset][metric_name],
+                        self.trainer._epoch - 1)
 
     def show(self, to_show, id):
-
         type_writers = {
             'images': self.tb_writer.add_image,
             'texts': self.tb_writer.add_text,
@@ -102,7 +85,7 @@ class TensorBoard(Pipe):
         for type in type_writers:
             if type in to_show:
                 for desc in to_show[type]:
-                    type_writers[type](self.name + '/' + str(id) + '/' + desc,
+                    type_writers[type](str(id) + '/' + desc,
                         to_show[type][desc], str(self.trainer._epoch))
 
     @staticmethod
@@ -121,11 +104,13 @@ class TensorBoard(Pipe):
             one = input[item_index]
             return one
 
-
     def after_batch(self):
         '''
         Writes the figures to the tensorboard when the trainer is in the test mode.
         '''
+        if not self.write_flag:
+            return None
+        
         if self.trainer._mode == 'test' and self.write_flag and (self.f is not None):
             for index in range(len(self.trainer._ids)):
 
@@ -137,9 +122,12 @@ class TensorBoard(Pipe):
 
                 self.show(res, id)
 
-
-        if self.trainer._mode == 'train':
-            self.tb_writer.add_scalar(
-                self.name + '/loss',
-                self.trainer._loss.detach().cpu(),
-                self.trainer._epoch)
+    def after_epoch(self):
+        '''
+        Destroys TensorBoardWriter
+        '''
+        if not self.write_flag:
+            return None
+        
+        self.tb_writer.close()
+        del self.tb_writer
