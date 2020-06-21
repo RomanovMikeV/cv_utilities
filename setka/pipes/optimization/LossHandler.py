@@ -49,7 +49,10 @@ class LossHandler(Pipe):
 
             if self.trainer._mode == "train":
                 if self.trainer._fp16:
-                    with amp.scale_loss(self.trainer._loss, self.trainer._optimizers) as scaled_loss:
+                    with amp.scale_loss(
+                            self.trainer._loss,
+                            [opt.optimizer for opt in self.trainer._optimizers]
+                    ) as scaled_loss:
                         scaled_loss.backward(retain_graph=self.retain_graph)
                 else:
                     self.trainer._loss.backward(retain_graph=self.retain_graph)
