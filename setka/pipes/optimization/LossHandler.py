@@ -1,5 +1,7 @@
 import torch
 
+from apex import amp
+
 from setka.pipes.Pipe import Pipe
 from copy import deepcopy
 

@@ -1,5 +1,4 @@
 from setka.pipes.Pipe import Pipe
-from apex import amp
 
 class UseApex(Pipe):
     """
