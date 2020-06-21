@@ -30,10 +30,12 @@ class ModelHandler(Pipe):
             self.model.cuda()
 
         if self.trainer._fp16 == True:
-            self.model, self.trainer._optimizers = amp.initialize(
+            self.model, opts = amp.initialize(
                 self.model,
-                self.trainer._optimizers
+                [opt.optimizer for opt in self.trainer._optimizers]
             )
+            for i in range(len(self.trainer._optimizers)):
+                self.trainer._optimizers[i].optimizer = opts[i]
 
         if self.data_parallel:
             self.trainer._model = torch.nn.DataParallel(self.model, device_ids=self.device_ids)
