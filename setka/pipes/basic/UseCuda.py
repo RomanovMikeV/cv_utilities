@@ -8,6 +8,9 @@ class UseCuda(Pipe):
     def __init__(self, device='cuda:0'):
         super(UseCuda, self).__init__()
         self.device = device
+        self.set_priority({'on_init': 9})
+    def on_init(self):
+        self.trainer._cuda = True
 
     def before_epoch(self):
         """
