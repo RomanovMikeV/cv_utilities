@@ -24,6 +24,12 @@ class ModelHandler(Pipe):
         self.set_priority({'after_batch': -10, 'on_batch': 10})
 
     def on_init(self):
+        if self.trainer._fp16 == True:
+            self.model, self.trainer._optimizers = amp.initialize(
+                self.model,
+                self.trainer._optimizers
+            )
+
         if self.data_parallel:
             self.trainer._model = torch.nn.DataParallel(self.model, device_ids=self.device_ids)
         else:

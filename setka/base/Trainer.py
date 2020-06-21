@@ -25,7 +25,7 @@ class Trainer:
                  batch_flow=['before_batch', 'on_batch', 'after_batch']):
 
         self.creation_time = datetime.datetime.now()
-
+        self._fp16=False
         self._train_flow = train_flow
         self._batch_flow = batch_flow
         self._epoch_flow = epoch_flow
