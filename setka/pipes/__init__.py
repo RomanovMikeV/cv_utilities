@@ -5,6 +5,7 @@ from setka.pipes.basic.ComputeMetrics import ComputeMetrics
 from setka.pipes.basic.DataSetHandler import DataSetHandler
 from setka.pipes.basic.ModelHandler import ModelHandler
 from setka.pipes.basic.UseCuda import UseCuda
+from setka.pipes.basic.UseApex import UseApex
 
 from setka.pipes.logging.Logger import Logger
 from setka.pipes.logging.Checkpointer import Checkpointer

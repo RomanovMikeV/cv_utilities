@@ -15,6 +15,7 @@ class OneStepOptimizers(Pipe):
     def __init__(self, optimizers):
         super(OneStepOptimizers, self).__init__()
         self.optimizers = optimizers
+        self.set_priority({'on_init': 8})
 
     def on_init(self):
         # self.trainer._optimizers = self.optimizers

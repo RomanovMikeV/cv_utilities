@@ -2,6 +2,8 @@ import torch
 
 from setka.pipes.Pipe import Pipe
 
+from apex import amp
+
 
 class ModelHandler(Pipe):
     """
@@ -24,6 +26,17 @@ class ModelHandler(Pipe):
         self.set_priority({'after_batch': -10, 'on_batch': 10})
 
     def on_init(self):
+        if self.trainer._cuda == True:
+            self.model.cuda()
+
+        if self.trainer._fp16 == True:
+            self.model, opts = amp.initialize(
+                self.model,
+                [opt.optimizer for opt in self.trainer._optimizers]
+            )
+            for i in range(len(self.trainer._optimizers)):
+                self.trainer._optimizers[i].optimizer = opts[i]
+
         if self.data_parallel:
             self.trainer._model = torch.nn.DataParallel(self.model, device_ids=self.device_ids)
         else:

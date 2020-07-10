@@ -1,5 +1,7 @@
 import torch
 
+from apex import amp
+
 from setka.pipes.Pipe import Pipe
 from copy import deepcopy
 
@@ -46,7 +48,14 @@ class LossHandler(Pipe):
                     self.trainer._loss_values[cur_criterion.__name__] = cur_loss.item()
 
             if self.trainer._mode == "train":
-                self.trainer._loss.backward(retain_graph=self.retain_graph)
+                if self.trainer._fp16:
+                    with amp.scale_loss(
+                            self.trainer._loss,
+                            [opt.optimizer for opt in self.trainer._optimizers]
+                    ) as scaled_loss:
+                        scaled_loss.backward(retain_graph=self.retain_graph)
+                else:
+                    self.trainer._loss.backward(retain_graph=self.retain_graph)
 
             self.trainer.status['Loss'] = self.trainer._loss.detach().cpu().item()
             self.trainer.status['Formula'] = self.formula()
